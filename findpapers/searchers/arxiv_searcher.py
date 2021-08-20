@@ -194,14 +194,17 @@ def _get_search_url(search: Search, start_record: Optional[int] = 0) -> str:
     """
 
     transformed_query = search.query.replace(' AND NOT ', ' ANDNOT ')
-    transformed_query = transformed_query.replace('-', ' ') # the arXiv search engine doesn't support hyphens properly
+    # the arXiv search engine doesn't support hyphens properly
+    transformed_query = transformed_query.replace('-', ' ')
     if transformed_query[0] == '"':
         transformed_query = ' ' + transformed_query
     transformed_query = transformed_query.replace('[', 'FIELD_TYPE:[')
 
     # when a wildcard is present, the search term cannot be enclosed in quotes
-    transformed_query = query_util.replace_search_term_enclosures(transformed_query, '', '', True)
-    transformed_query = query_util.replace_search_term_enclosures(transformed_query, '"', '"').strip()
+    transformed_query = query_util.replace_search_term_enclosures(
+        transformed_query, '', '', True)
+    transformed_query = query_util.replace_search_term_enclosures(
+        transformed_query, '"', '"').strip()
 
     abstract_query = transformed_query.replace('FIELD_TYPE:', 'abs:')
     title_query = transformed_query.replace('FIELD_TYPE:', 'ti:')
@@ -211,8 +214,8 @@ def _get_search_url(search: Search, start_record: Optional[int] = 0) -> str:
 
     return url
 
-
-def _get_api_result(search: Search, start_record: Optional[int] = 0) -> dict: # pragma: no cover
+# pragma: no cover
+def _get_api_result(search: Search, start_record: Optional[int] = 0) -> dict:
     """
     This method return results from arXiv database using the provided search parameters
 
@@ -269,8 +272,9 @@ def _get_publication(paper_entry: dict) -> Publication:
                 if subject_area is not None:
                     subject_areas.add(subject_area)
 
-        publication = Publication(
-            publication_title, subject_areas=subject_areas)
+        publication = Publication(publication_title,
+                                  category='Preprint',
+                                  subject_areas=subject_areas)
 
         return publication
 
@@ -299,7 +303,7 @@ def _get_paper(paper_entry: dict, paper_publication_date: datetime.date, publica
     if paper_title is None or len(paper_title) == 0:
         return None
 
-    paper_title = paper_title.replace('\n','') 
+    paper_title = paper_title.replace('\n','')
     paper_title = re.sub(' +', ' ', paper_title)
 
     paper_doi = paper_entry.get('arxiv:doi').get(

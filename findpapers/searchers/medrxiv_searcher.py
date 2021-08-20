@@ -3,6 +3,7 @@ import findpapers.searchers.rxiv_searcher as rxiv_searcher
 
 DATABASE_LABEL = 'medRxiv'
 
+
 def run(search: Search):
     """
     This method fetch papers from medRxiv database using the provided search parameters
