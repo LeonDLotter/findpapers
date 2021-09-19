@@ -253,30 +253,32 @@ def _get_publication(paper_entry: dict) -> Publication:
     """
 
     if 'arxiv:journal_ref' in paper_entry:
-
+        # overwrite with published title
         publication_title = paper_entry.get('arxiv:journal_ref').get('#text')
 
         if publication_title is None or len(publication_title) == 0:
             return None
 
-        subject_areas = set()
+    else:
+        publication_title = paper_entry.get('title') # unpublised preprints
 
-        if 'category' in paper_entry:
-            if isinstance(paper_entry.get('category'), list):
-                for category in paper_entry.get('category'):
-                    subject_area = SUBJECT_AREA_BY_KEY.get(category.get('@term'), None)
-                    if subject_area is not None:
-                        subject_areas.add(subject_area)
-            else:
-                subject_area = SUBJECT_AREA_BY_KEY.get(paper_entry.get('category').get('@term'), None)
+    subject_areas = set()
+    if 'category' in paper_entry:
+        if isinstance(paper_entry.get('category'), list):
+            for category in paper_entry.get('category'):
+                subject_area = SUBJECT_AREA_BY_KEY.get(category.get('@term'), None)
                 if subject_area is not None:
                     subject_areas.add(subject_area)
+        else:
+            subject_area = SUBJECT_AREA_BY_KEY.get(paper_entry.get('category').get('@term'), None)
+            if subject_area is not None:
+                subject_areas.add(subject_area)
 
-        publication = Publication(publication_title,
-                                  category='Preprint',
-                                  subject_areas=subject_areas)
+    publication = Publication(publication_title,
+                              category='Preprint',
+                              subject_areas=subject_areas)
 
-        return publication
+    return publication
 
 
 def _get_paper(paper_entry: dict, paper_publication_date: datetime.date, publication: Publication) -> Paper:

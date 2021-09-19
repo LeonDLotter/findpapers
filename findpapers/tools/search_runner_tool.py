@@ -464,17 +464,22 @@ def search(outputpath: str, query: Optional[str] = None, since: Optional[datetim
 
     if proxy is not None:
         os.environ['FINDPAPERS_PROXY'] = proxy
-    
+
     logging.info('Let\'s find some papers, this process may take a while...')
 
     if databases is not None:
         databases = [x.lower() for x in databases]
-    
+
     if publication_types is not None:
         publication_types = [x.lower().strip() for x in publication_types]
         for publication_type in publication_types:
-            if publication_type not in ['journal', 'conference proceedings', 'book', 'other']:
-                raise ValueError(f'Invalid publication type: {publication_type}')
+            if publication_type not in ['journal',
+                                        'conference proceedings',
+                                        'book',
+                                        'preprint',
+                                        'other']:
+                raise ValueError('Invalid publication type: '
+                                 f'{publication_type}')
 
     if query is None:
         query = os.getenv('FINDPAPERS_QUERY')
