@@ -28,3 +28,4 @@ dev.py
 *.pdf
 *.log
 *.bib
+*.json

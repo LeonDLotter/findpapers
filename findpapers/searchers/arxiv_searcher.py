@@ -260,17 +260,19 @@ def _get_publication(paper_entry: dict) -> Publication:
             return None
 
     else:
-        publication_title = paper_entry.get('title') # unpublised preprints
+        publication_title = DATABASE_LABEL  # unpublished preprints
 
     subject_areas = set()
     if 'category' in paper_entry:
         if isinstance(paper_entry.get('category'), list):
             for category in paper_entry.get('category'):
-                subject_area = SUBJECT_AREA_BY_KEY.get(category.get('@term'), None)
+                subject_area = SUBJECT_AREA_BY_KEY.get(
+                    category.get('@term'), None)
                 if subject_area is not None:
                     subject_areas.add(subject_area)
         else:
-            subject_area = SUBJECT_AREA_BY_KEY.get(paper_entry.get('category').get('@term'), None)
+            subject_area = SUBJECT_AREA_BY_KEY.get(
+                paper_entry.get('category').get('@term'), None)
             if subject_area is not None:
                 subject_areas.add(subject_area)
 
@@ -281,7 +283,9 @@ def _get_publication(paper_entry: dict) -> Publication:
     return publication
 
 
-def _get_paper(paper_entry: dict, paper_publication_date: datetime.date, publication: Publication) -> Paper:
+def _get_paper(paper_entry: dict,
+               paper_publication_date: datetime.date,
+               publication: Publication) -> Paper:
     """
     Using a paper entry provided, this method builds a paper instance
 

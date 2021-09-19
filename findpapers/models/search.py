@@ -86,7 +86,8 @@ class Search():
         if paper_doi is not None:
             return f'DOI-{paper_doi}'
         else:
-            return f'{paper_title.lower()}|{publication_date.year if publication_date is not None else ""}'
+            return (f'{paper_title.lower()}|'
+                    f'{publication_date.year if publication_date is not None else ""}')
 
     def get_publication_key(self, publication_title: str, publication_issn: Optional[str] = None, publication_isbn: Optional[str] = None) -> str:
         """
@@ -146,8 +147,9 @@ class Search():
 
         if paper.publication is not None:
 
-            publication_key = self.get_publication_key(
-                paper.publication.title, paper.publication.issn, paper.publication.isbn)
+            publication_key = self.get_publication_key(paper.publication.title,
+                                                       paper.publication.issn,
+                                                       paper.publication.isbn)
             already_collected_publication = self.publication_by_key.get(
                 publication_key, None)
 
@@ -179,7 +181,6 @@ class Search():
             else:
                 self.papers_by_database[database].add(already_collected_paper)
                 already_collected_paper.enrich(paper)
-        
 
     def get_paper(self, paper_title: str, publication_date: str, paper_doi: Optional[str] = None) -> Paper:
         """
@@ -312,10 +313,16 @@ class Search():
             a flag that says if the search has reached its limit
         """
 
-        reached_general_limit = self.limit is not None and len(
-            self.papers) >= self.limit
-        reached_database_limit = self.limit_per_database is not None and database in self.papers_by_database and len(
-            self.papers_by_database.get(database)) >= self.limit_per_database
+        if bool(self.papers_by_database.get(database)):
+            n_dbs = len(self.papers_by_database.get(database))
+        else:
+            n_dbs = 0
+
+        reached_general_limit = (self.limit is not None and
+                                 len(self.papers) >= self.limit)
+        reached_database_limit = (self.limit_per_database is not None and
+                                  database in self.papers_by_database and
+                                  n_dbs >= self.limit_per_database)
 
         return reached_general_limit or reached_database_limit
 

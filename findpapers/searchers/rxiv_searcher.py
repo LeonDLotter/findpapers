@@ -155,7 +155,7 @@ def _get_result_page_data(result_page: html.HtmlElement) -> dict:
 
     if total_papers > 0:
 
-        dois = result_page.xpath('//*[@class="highwire-cite-metadata-doi'
+        dois = result_page.xpath('//*[@class="highwire-cite-metadata-doi '
                                  'highwire-cite-metadata"]/text()')
         dois = [x.strip().replace('https://doi.org/', '') for x in dois]
 
@@ -198,7 +198,7 @@ def _get_paper_metadata(doi: str, database: str) -> dict:  # pragma: no cover
         lambda: DefaultSession().get(url).json(), 2)
     if (response is not None and
         response.get('collection', None) is not None and
-        len(response.get('collection')) > 0):
+            len(response.get('collection')) > 0):
         return response.get('collection')[0]
 
 
@@ -227,14 +227,17 @@ def _get_data(url: str) -> List[dict]:
     return data
 
 
-def _get_publication(paper_entry: dict) -> Publication:
+def _get_publication(paper_entry: dict, database: str) -> Publication:
     """
     Using a paper entry provided, this method builds a publication instance
 
     Parameters
     ----------
     paper_entry : dict
-        A paper entry retrieved from arXiv API
+        A paper entry retrieved from rXiv API
+
+    database : str
+       The name of database is set as the preprint title.
 
     Returns
     -------
@@ -242,7 +245,8 @@ def _get_publication(paper_entry: dict) -> Publication:
         A publication instance
     """
 
-    publication_title = None
+    publication_title = database  # unpublished preprints
+
     subject_areas = set()
     if 'category' in paper_entry:
         if isinstance(paper_entry.get('category'), list):
@@ -256,7 +260,7 @@ def _get_publication(paper_entry: dict) -> Publication:
     return publication
 
 
-def _get_paper(paper_metadata: dict) -> Paper:
+def _get_paper(paper_metadata: dict, database: str) -> Paper:
     """
     Get Paper object from metadata
 
@@ -264,6 +268,9 @@ def _get_paper(paper_metadata: dict) -> Paper:
     ----------
     paper_metadata : dict
         Paper metadata
+
+    database : str
+        Name of database
 
     Returns
     -------
@@ -289,7 +296,10 @@ def _get_paper(paper_metadata: dict) -> Paper:
     paper_pages = None
 
     if paper_metadata.get('published').lower() != 'na':
-        publication = _get_publication(paper_metadata)
+        # replace doi if published
+        paper_doi = paper_metadata.get('published').replace('\\', '')
+
+    publication = _get_publication(paper_metadata, database)  # create pub obj
 
     return Paper(paper_title, paper_abstract, paper_authors, publication,
                  paper_publication_date, {paper_url}, paper_doi,
@@ -336,7 +346,7 @@ def run(search: Search, database: str):
 
         for doi in dois:
             if (papers_count >= total_papers or
-                search.reached_its_limit(database)):
+                    search.reached_its_limit(database)):
                 break
             try:
                 papers_count += 1
@@ -347,7 +357,7 @@ def run(search: Search, database: str):
                 logging.info(f'({papers_count}/{total_papers}) '
                              f'Fetching {database} paper: {paper_title}')
 
-                paper = _get_paper(paper_metadata)
+                paper = _get_paper(paper_metadata, database)
                 paper.add_database(database)
                 search.add_paper(paper)
 
