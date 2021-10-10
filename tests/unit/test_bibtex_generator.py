@@ -41,7 +41,7 @@ def test_output(search: Search, paper: Paper):
 
     search_path = tempfile.NamedTemporaryFile().name
     outputpath = tempfile.NamedTemporaryFile().name
-    
+
     persistence_util.save(search, search_path)
 
     findpapers.generate_bibtex(search_path, outputpath)

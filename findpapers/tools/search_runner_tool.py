@@ -331,9 +331,12 @@ def _is_query_ok(query: str) -> bool:
         A boolean value indicating whether the query is valid or not
     """
 
-    if len(query) == 0 or len(query) < 3 or query[0] not in ['(', '['] or query[-1] not in [')', ']']:
+    if (len(query) == 0 or
+       len(query) < 3 or
+       query[0] not in ['(', '['] or
+       query[-1] not in [')', ']']):
         return False
-    
+
     # checking groups
     group_characters = []
     for character in query:

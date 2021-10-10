@@ -69,8 +69,12 @@ def generate_bibtex(search_path: str, outputpath: str,
                                    'Conference Proceedings': '@inproceedings',
                                    'Book': '@book',
                                    'Preprint': '@unpublished'}
-            citation_type = citation_dispatcher.get(paper.publication.category,
-                                                    '@misc')
+
+            citation_type = '@unpublished'
+            # ensure type is publication field is available
+            if paper.publication is not None:
+                citation_type = citation_dispatcher.get(
+                    paper.publication.category, '@misc')
 
             bibtex_output += f'{citation_type}{"{"}{paper.get_citation_key()},\n'
 

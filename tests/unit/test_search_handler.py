@@ -64,19 +64,25 @@ def test_query_sanitize():
 
 @pytest.mark.parametrize('start_date,'
                          'end_date',
-                         [(datetime.fromisoformat('2017-01-01'),
-                           datetime.fromisoformat('2022-01-01'))])
-def test_date_restriction(start_date: datetime,
-                          end_date: datetime):
+                         [(datetime.fromisoformat('2017-01-01').date(),
+                           datetime.fromisoformat('2022-01-01').date())])
+def test_date_restriction(start_date: datetime.date,
+                          end_date: datetime.date):
     """Tests date restrictions of search function using fake data."""
     search = search_runner_tool.search(None,
-                                       '',
+                                       '[graph]',
                                        start_date,
-                                       end_date)
+                                       end_date,
+                                       25,
+                                       5)
 
     # test number of fetched papers
     assert len(search.papers) > 0
 
+    # test date restriction
+    dates = [v.publication_date for v in search.papers]
+    assert min(dates) >= start_date
+    assert max(dates) <= end_date
 
 @pytest.mark.parametrize('limit,'
                          'databases,'
@@ -92,7 +98,7 @@ def test_date_restriction(start_date: datetime,
                            '[asd] AND [TEST]'),
                           (5,
                            ['arxiv'],
-                           None,
+                           ['Preprint'],
                            '[asd] AND [TEST]')])
 def test_search(limit: int,
                 databases: list,
