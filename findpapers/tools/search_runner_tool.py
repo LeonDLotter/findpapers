@@ -84,7 +84,6 @@ def _force_single_metadata_value_by_key(metadata_entry: dict, metadata_key: str)
     return metadata_entry.get(metadata_key, None) if not isinstance(metadata_entry.get(metadata_key, None), list) else metadata_entry.get(metadata_key)[0]
 
 
-
 def _enrich(search: Search, scopus_api_token: Optional[str] = None):
     """
     Private method that enriches the search results based on paper metadata
@@ -264,7 +263,8 @@ def _flag_potentially_predatory_publications(search: Search):
 
 def _database_safe_run(function: callable, search: Search, database_label: str):
     """
-    Private method that calls a provided function catching all exceptions without rasing them, only logging a ERROR message
+    Private method that calls a provided function catching all exceptions 
+    without rasing them, only logging a ERROR message
 
     Parameters
     ----------
@@ -280,8 +280,9 @@ def _database_safe_run(function: callable, search: Search, database_label: str):
         try:
             function()
         except Exception:  # pragma: no cover
-            logging.debug(
-                f'Error while fetching papers from {database_label} database', exc_info=True)
+            logging.debug(f'Error while fetching papers from {database_label}'
+                          f' database',
+                          exc_info=True)
 
 
 def _sanitize_query(query: str) -> str:
@@ -394,10 +395,18 @@ def _is_query_ok(query: str) -> bool:
     return query_ok and current_keyword is None and current_operator is None
 
 
-def search(outputpath: str, query: Optional[str] = None, since: Optional[datetime.date] = None, until: Optional[datetime.date] = None,
-        limit: Optional[int] = None, limit_per_database: Optional[int] = None, databases: Optional[List[str]] = None,
-        publication_types: Optional[List[str]] = None, scopus_api_token: Optional[str] = None, ieee_api_token: Optional[str] = None,
-        proxy: Optional[str] = None, verbose: Optional[bool] = False) -> dict:
+def search(outputpath: str,
+           query: Optional[str] = None,
+           since: Optional[datetime.date] = None,
+           until: Optional[datetime.date] = None,
+           limit: Optional[int] = None,
+           limit_per_database: Optional[int] = None,
+           databases: Optional[List[str]] = None,
+           publication_types: Optional[List[str]] = None,
+           scopus_api_token: Optional[str] = None,
+           ieee_api_token: Optional[str] = None,
+           proxy: Optional[str] = None,
+           verbose: Optional[bool] = False) -> dict:
     """
     When you have a query and needs to get papers using it, this is the method that you'll need to call.
     This method will find papers from some databases based on the provided query.
@@ -410,7 +419,7 @@ def search(outputpath: str, query: Optional[str] = None, since: Optional[datetim
     query : str, optional
 
         A query string that will be used to perform the papers search.
-        
+   
         If not provided, the query will be loaded from the environment variable FINDPAPERS_QUERY
 
         All the query terms need to be enclosed in quotes and can be associated using boolean operators,
@@ -447,13 +456,13 @@ def search(outputpath: str, query: Optional[str] = None, since: Optional[datetim
 
     ieee_api_token : Optional[str], optional
         A API token used to fetch data from IEEE database. If you don't have one go to https://developer.ieee.org and get it, by default None
-    
+
     proxy : Optional[str], optional
         proxy URL that can be used during requests. This can be also defined by an environment variable FINDPAPERS_PROXY. By default None
 
     verbose : Optional[bool], optional
         If you wanna a verbose logging
-    
+
     Returns
     -------
     dict
@@ -496,24 +505,31 @@ def search(outputpath: str, query: Optional[str] = None, since: Optional[datetim
     if scopus_api_token is None:
         scopus_api_token = os.getenv('FINDPAPERS_SCOPUS_API_TOKEN')
 
-    search = Search(query, since, until, limit, limit_per_database, databases=databases, publication_types=publication_types)
+    search = Search(query,
+                    since,
+                    until,
+                    limit,
+                    limit_per_database,
+                    databases=databases,
+                    publication_types=publication_types)
 
     if databases is None or arxiv_searcher.DATABASE_LABEL.lower() in databases:
         _database_safe_run(lambda: arxiv_searcher.run(search),
-                        search, arxiv_searcher.DATABASE_LABEL)
-    
+                           search, arxiv_searcher.DATABASE_LABEL)
+
     if databases is None or pubmed_searcher.DATABASE_LABEL.lower() in databases:
         _database_safe_run(lambda: pubmed_searcher.run(search),
-                        search, pubmed_searcher.DATABASE_LABEL)
+                           search, pubmed_searcher.DATABASE_LABEL)
 
     if databases is None or acm_searcher.DATABASE_LABEL.lower() in databases:
         _database_safe_run(lambda: acm_searcher.run(search),
-                        search, acm_searcher.DATABASE_LABEL)
+                           search, acm_searcher.DATABASE_LABEL)
 
     if ieee_api_token is not None:
         if databases is None or ieee_searcher.DATABASE_LABEL.lower() in databases:
-            _database_safe_run(lambda: ieee_searcher.run(
-                search, ieee_api_token), search, ieee_searcher.DATABASE_LABEL)
+            _database_safe_run(
+                lambda: ieee_searcher.run(search, ieee_api_token),
+                search, ieee_searcher.DATABASE_LABEL)
     else:
         logging.info('IEEE API token not found, skipping search on this database')
 
@@ -526,11 +542,11 @@ def search(outputpath: str, query: Optional[str] = None, since: Optional[datetim
 
     if databases is None or medrxiv_searcher.DATABASE_LABEL.lower() in databases:
         _database_safe_run(lambda: medrxiv_searcher.run(search),
-                        search, medrxiv_searcher.DATABASE_LABEL)
+                           search, medrxiv_searcher.DATABASE_LABEL)
 
     if databases is None or biorxiv_searcher.DATABASE_LABEL.lower() in databases:
         _database_safe_run(lambda: biorxiv_searcher.run(search),
-                        search, biorxiv_searcher.DATABASE_LABEL)
+                           search, biorxiv_searcher.DATABASE_LABEL)
 
     logging.info('Enriching results...')
 

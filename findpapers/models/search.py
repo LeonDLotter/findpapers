@@ -12,9 +12,16 @@ class Search():
     Class that represents a search
     """
 
-    def __init__(self, query: str, since: Optional[datetime.date] = None, until: Optional[datetime.date] = None,
-                 limit: Optional[int] = None, limit_per_database: Optional[int] = None, processed_at: Optional[datetime.datetime] = None,
-                 databases: Optional[List[str]] = None, publication_types: Optional[List[str]] = None, papers: Optional[set] = None):
+    def __init__(self,
+                 query: str,
+                 since: Optional[datetime.date] = None,
+                 until: Optional[datetime.date] = None,
+                 limit: Optional[int] = None,
+                 limit_per_database: Optional[int] = None,
+                 processed_at: Optional[datetime.datetime] = None,
+                 databases: Optional[List[str]] = None,
+                 publication_types: Optional[List[str]] = None,
+                 papers: Optional[set] = None):
         """
         Class constructor
 
@@ -27,27 +34,41 @@ class Search():
         until : datetime.date, optional
             The upper bound (inclusive) date of search, by default None
         limit : int, optional
-            The max number of papers that can be returned in the search, 
-            when the limit is not provided the search will retrieve all the papers that it can, by default None
+            The max number of papers that can be returned in the search,
+            when the limit is not provided the search will retrieve all the
+            papers that it can, by default None
         limit_per_database : int, optional
-            The max number of papers that can be returned in the search for each database
-            when the limit is not provided the search will retrieve all the papers that it can, by default None
+            The max number of papers that can be returned in the search for
+            each database when the limit is not provided the search will
+            retrieve all the papers that it can, by default None
         processed_at : datetime.datetime, optional
             The datetime when the search was performed
         databases : List[str], optional
-            List of databases where the search should be performed, if not specified all databases will be used. by default None
+            List of databases where the search should be performed, if not
+            specified all databases will be used. by default None
         publication_types : List[str], optional
-            List of publication list of publication types to filter when searching, if not specified all publication types will be used. By default None
+            List of publication list of publication types to filter when
+            searching, if not specified all publication types will be used.
+            By default None
         papers : set, optional
             A list of papers already collected
         """
 
         self.query = query
+
+        # ensure type for date limits
         self.since = since
+        if (since is not None and
+           isinstance(since, datetime.datetime)):
+            self.since = self.since.date()
         self.until = until
+        if (until is not None and
+           isinstance(until, datetime.datetime)):
+            self.until = self.until.date()
         self.limit = limit
         self.limit_per_database = limit_per_database
-        self.processed_at = processed_at if processed_at is not None else datetime.datetime.utcnow()
+        self.processed_at = (processed_at if processed_at is not None else
+                             datetime.datetime.utcnow())
         self.databases = databases
         self.publication_types = publication_types
 
@@ -64,7 +85,10 @@ class Search():
                 except Exception:
                     pass
 
-    def get_paper_key(self, paper_title: str, publication_date: datetime.date, paper_doi: Optional[str] = None) -> str:
+    def get_paper_key(self,
+                      paper_title: str,
+                      publication_date: datetime.date,
+                      paper_doi: Optional[str] = None) -> str:
         """
         We have a map called paper_by_key that is filled using the string this method returns
 
@@ -133,8 +157,8 @@ class Search():
         """
 
         if len(paper.databases) == 0:
-            raise ValueError(
-                'Paper cannot be added to search without at least one defined database')
+            raise ValueError('Paper cannot be added to search without'
+                             'at least one defined database')
 
         for database in paper.databases:
             if self.databases is not None and database.lower() not in self.databases:
@@ -164,8 +188,8 @@ class Search():
 
         already_collected_paper = self.paper_by_key.get(paper_key, None)
 
-        if (self.since is None or paper.publication_date >= self.since) \
-                and (self.until is None or paper.publication_date <= self.until):
+        if ((self.since is None or paper.publication_date >= self.since) and
+            (self.until is None or paper.publication_date <= self.until)):
 
             if already_collected_paper is None:
                 self.papers.add(paper)

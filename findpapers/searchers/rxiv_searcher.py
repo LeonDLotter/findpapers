@@ -331,7 +331,7 @@ def run(search: Search, database: str):
 
         logging.info(f'{database}: Requesting for papers...')
 
-        data = _get_data(url)
+        data = _get_data(url)  # parse response
 
         total_papers = 0
         if len(data) > 0:
@@ -345,6 +345,7 @@ def run(search: Search, database: str):
         dois = sum([d.get('dois') for d in [x for x in data]], [])
 
         for doi in dois:
+            #  stop after user specified limit
             if (papers_count >= total_papers or
                     search.reached_its_limit(database)):
                 break
