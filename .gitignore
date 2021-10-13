@@ -25,6 +25,7 @@ dev.py
 .DS_Store
 
 # Generated files
+*.csv
 *.pdf
 *.log
 *.bib
