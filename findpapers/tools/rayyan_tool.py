@@ -40,7 +40,7 @@ class RayyanExport:
         """List of rayyan papers.
 
         Returns:
-            list: search results
+            list: pandas compatible search results
         """
         return self.__rayyan
 
@@ -60,6 +60,7 @@ class RayyanExport:
             self._convert_to_rayyan()
 
     def _convert_to_rayyan(self):
+        """converts findpapers results for rayyan."""
         papers = self.search.papers
         try:
             rayyan = [RayyanPaper(key=i,
@@ -72,7 +73,9 @@ class RayyanExport:
                                   year=p.publication_date.year,
                                   pages=p.pages,
                                   publisher=p.publication.publisher,
-                                  url=list(p.urls)[0])  # get first url
+                                  url=list(p.urls)[0] if any(p.urls) else None,  # get first url
+                                  abstract=p.abstract,
+                                  notes=f'doi: {p.doi}')
                       for i, p in enumerate(papers, 1)]  # start key from 1
         except Exception:
             logging.warning('Results can not be converted to rayyan',
@@ -81,5 +84,13 @@ class RayyanExport:
             self.__rayyan = rayyan
 
     def generate_rayyan_csv(self, file_name: str):
-        papers = pd.DataFrame(self.rayyan)
-        papers.to_csv(file_name, index=False)
+        """Saves search results in a raayan compatibe csv.
+
+        Args:
+            file_name (str): Name of result file
+        """
+        if hasattr(self, 'rayyan'):
+            papers = pd.DataFrame(self.rayyan)
+            papers.to_csv(file_name, index=False)
+        else:
+            logging.info('Empty results')
