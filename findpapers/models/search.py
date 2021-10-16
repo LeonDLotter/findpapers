@@ -298,15 +298,20 @@ class Search():
             paper_1 = self.paper_by_key.get(paper_1_key)
             paper_2 = self.paper_by_key.get(paper_2_key)
 
-            if (paper_1.publication_date is None or paper_2.publication_date is None) or \
-                (paper_1.publication_date.year != paper_2.publication_date.year) or \
-                (paper_1.doi is not None and paper_2.doi is not None and paper_1.doi != paper_2.doi):
-                # We cannot merge paper from different years or without a year defined or different DOI
-                break
+            # check if deduplication can be performed
+            if ((paper_1 is None or paper_2 is None) or
+               (paper_1.publication_date is None or
+                paper_2.publication_date is None) or
+               (paper_1.publication_date.year !=
+                paper_2.publication_date.year) or
+               (paper_1.doi is not None and
+                paper_2.doi is not None and
+                paper_1.doi != paper_2.doi)):
+                continue
 
             max_title_length = max(len(paper_1.title), len(paper_2.title))
 
-            # creating the max valid edit distance using the max title length between the two papers and the provided similarity threshold
+            # creating the max valid edit distance using the max title length
             max_edit_distance = int(
                 max_title_length * (1 - similarity_threshold))
 
@@ -314,7 +319,8 @@ class Search():
             titles_edit_distance = edlib.align(
                 paper_1.title.lower(), paper_2.title.lower())['editDistance']
 
-            if (paper_1.doi is not None and paper_1.doi == paper_2.doi) or (titles_edit_distance <= max_edit_distance):
+            if ((paper_1.doi is not None and paper_1.doi == paper_2.doi) or
+                (titles_edit_distance <= max_edit_distance)):
 
                 # using the information of paper_2 to enrich paper_1
                 paper_1.enrich(paper_2)
