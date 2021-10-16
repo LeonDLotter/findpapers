@@ -25,8 +25,8 @@ LOGGER = logging.getLogger(__name__)
                            '2022-01-01',
                            'arXiv',
                            None,
-                           ('Yiding Wang, Zhenyi Wang, Chenghao Li, '
-                            'Yilin Zhang, Haizhou Wang'),
+                           ['Yiding Wang', 'Zhenyi Wang', 'Chenghao Li',
+                            'Yilin Zhang', 'Haizhou Wang'],
                            25,
                            8,
                            2020
@@ -38,7 +38,7 @@ def test_convert(databases: list,
                  until: str,
                  journal: str,
                  publisher: str,
-                 authors: str,
+                 authors: list,
                  day: int,
                  month: int,
                  year: int):
@@ -73,5 +73,5 @@ def test_generate_rayyan(caplog):
     rayyan = findpapers.RayyanExport(search)
 
     with caplog.at_level(logging.INFO):
-        rayyan.generate_rayyan_csv('test.csv')
+        rayyan.generate_rayyan_csv()
     assert 'Empty results' in caplog.text

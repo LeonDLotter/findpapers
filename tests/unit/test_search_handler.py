@@ -84,6 +84,7 @@ def test_date_restriction(start_date: datetime.date,
     assert min(dates) >= start_date
     assert max(dates) <= end_date
 
+
 @pytest.mark.parametrize('limit,'
                          'databases,'
                          'publication_type,'
@@ -96,7 +97,7 @@ def test_date_restriction(start_date: datetime.date,
                            ['pubmed'],
                            ['Journal'],
                            '[asd] AND [TEST]'),
-                          (5,
+                          (3,
                            ['arxiv'],
                            ['Preprint'],
                            '[asd] AND [TEST]')])

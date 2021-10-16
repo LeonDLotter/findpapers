@@ -4,6 +4,8 @@ Class to parse search results to a rayyan compatible format.
 import logging
 import pandas as pd
 from dataclasses import dataclass
+from dataclasses import fields
+
 from typing import List
 from findpapers.models.search import Search
 
@@ -13,6 +15,7 @@ class RayyanPaper:
     key: int
     title: str
     authors: List[str]
+    databases: List[str]
     journal: str
     issn: str
     day: int
@@ -24,7 +27,7 @@ class RayyanPaper:
     publisher: str = None
     pmc_id: str = None
     pubmed_id: str = None
-    url: str = None
+    url: List[str] = None
     abstract: str = None
     notes: str = None
 
@@ -65,7 +68,8 @@ class RayyanExport:
         try:
             rayyan = [RayyanPaper(key=i,
                                   title=p.title,
-                                  authors=", ".join(p.authors),
+                                  authors=p.authors,
+                                  databases=list(p.databases),
                                   journal=p.publication.title,
                                   issn=p.publication.issn,
                                   day=p.publication_date.day,
@@ -73,7 +77,7 @@ class RayyanExport:
                                   year=p.publication_date.year,
                                   pages=p.pages,
                                   publisher=p.publication.publisher,
-                                  url=list(p.urls)[0] if any(p.urls) else None,  # get first url
+                                  url=list(p.urls),
                                   abstract=p.abstract,
                                   notes=f'doi: {p.doi}')
                       for i, p in enumerate(papers, 1)]  # start key from 1
@@ -83,14 +87,34 @@ class RayyanExport:
         else:
             self.__rayyan = rayyan
 
-    def generate_rayyan_csv(self, file_name: str):
-        """Saves search results in a raayan compatibe csv.
+    def generate_rayyan_csv(self, filename: str = None):
+        """Converts and saves search results in a rayyan compatibe csv
 
         Args:
-            file_name (str): Name of result file
+            filename (str, optional): filename of csv. Defaults to None.
+
+        Returns:
+            csv: a rayyan compatible and encoded csv obj. Defaults to None.
+            papers: pamdas dataframe of rayyan objects. Defaults to None.
         """
+
         if hasattr(self, 'rayyan'):
             papers = pd.DataFrame(self.rayyan)
-            papers.to_csv(file_name, index=False)
+
+            # convert lists to strings
+            list_names = [field.name for field in fields(RayyanPaper)
+                          if field.type == List[str]]
+
+            csv_content = papers.copy()
+            for f in list_names:
+                csv_content[f] = [', '.join(l) for l in papers[f]]
+                #csv_content[f] = [', '.join(map(str, l)) for l in papers[f]]  # safer but not required
+
+            csv = csv_content.to_csv(index=False).encode('utf-8')
+            if filename is not None:
+                csv_content.to_csv(filename, index=False)
         else:
+            papers = None
+            csv = None
             logging.info('Empty results')
+        return csv, papers
