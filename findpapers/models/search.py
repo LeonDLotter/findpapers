@@ -90,7 +90,8 @@ class Search():
                       publication_date: datetime.date,
                       paper_doi: Optional[str] = None) -> str:
         """
-        We have a map called paper_by_key that is filled using the string this method returns
+        We have a map called paper_by_key that is filled using
+        the string this method returns
 
         Parameters
         ----------
@@ -104,18 +105,25 @@ class Search():
         Returns
         -------
         str
-            A string that represents a unique key for each paper, that will be used to fill and retrieve values from paper_by_key
+            A string that represents a unique key for each paper,
+            that will be used to fill and retrieve values from paper_by_key
         """
 
         if paper_doi is not None:
             return f'DOI-{paper_doi}'
         else:
+            year = ''
+            if publication_date is not None:
+                year = publication_date.year
             return (f'{paper_title.lower()}|'
-                    f'{publication_date.year if publication_date is not None else ""}')
+                    f'{year}')
 
-    def get_publication_key(self, publication_title: str, publication_issn: Optional[str] = None, publication_isbn: Optional[str] = None) -> str:
+    def get_publication_key(self, publication_title: str,
+                            publication_issn: Optional[str] = None,
+                            publication_isbn: Optional[str] = None) -> str:
         """
-        We have a map called publication_by_key that is filled using the string this method returns
+        We have a map called publication_by_key that is filled using
+        the string this method returns
 
         Parameters
         ----------
@@ -129,7 +137,9 @@ class Search():
         Returns
         -------
         str
-            A string that represents a unique key for each publication, that will be used to fill and retrieve values from publication_by_key
+            A string that represents a unique key for each publication,
+            that will be used to fill and retrieve values
+            from publication_by_key
         """
 
         if publication_issn is not None:
@@ -141,8 +151,8 @@ class Search():
 
     def add_paper(self, paper: Paper):
         """
-        Method that handle the action to add a paper to the list of already collected papers, 
-        dealing with possible paper's duplications
+        Method that handle the action to add a paper to the list of already
+        collected papers, dealing with possible paper's duplications
 
         Parameters
         ----------
@@ -151,7 +161,8 @@ class Search():
         Raises
         ------
         ValueError
-            - Paper cannot be added to search without at least one defined database
+            - Paper cannot be added to search without
+              at least one defined database
         OverflowError
             - When the papers limit is provided, you cannot exceed it
         """
@@ -161,10 +172,13 @@ class Search():
                              'at least one defined database')
 
         for database in paper.databases:
-            if self.databases is not None and database.lower() not in self.databases:
-                raise ValueError(f'Database {database} isn\'t in databases list')
+            if (self.databases is not None and
+               database.lower() not in self.databases):
+                raise ValueError(f'Database {database}'
+                                 ' isn\'t in databases list')
             if self.reached_its_limit(database):
-                raise OverflowError('When the papers limit is provided, you cannot exceed it')
+                raise OverflowError('When the papers limit is provided, '
+                                    'you cannot exceed it')
 
         if database not in self.papers_by_database:
             self.papers_by_database[database] = set()
@@ -189,7 +203,7 @@ class Search():
         already_collected_paper = self.paper_by_key.get(paper_key, None)
 
         if ((self.since is None or paper.publication_date >= self.since) and
-            (self.until is None or paper.publication_date <= self.until)):
+           (self.until is None or paper.publication_date <= self.until)):
 
             if already_collected_paper is None:
                 self.papers.add(paper)
@@ -206,7 +220,9 @@ class Search():
                 self.papers_by_database[database].add(already_collected_paper)
                 already_collected_paper.enrich(paper)
 
-    def get_paper(self, paper_title: str, publication_date: str, paper_doi: Optional[str] = None) -> Paper:
+    def get_paper(self, paper_title: str,
+                  publication_date: str,
+                  paper_doi: Optional[str] = None) -> Paper:
         """
         Get a collected paper by paper's title and publication date
 
@@ -222,7 +238,8 @@ class Search():
         Returns
         -------
         Paper
-            The wanted paper, or None if there isn't a paper given by the provided arguments
+            The wanted paper, or None if there isn't a papers
+            given by the provided arguments
         """
 
         paper_key = self.get_paper_key(
@@ -230,7 +247,10 @@ class Search():
 
         return self.paper_by_key.get(paper_key, None)
 
-    def get_publication(self, title: str, issn: Optional[str] = None, isbn: Optional[str] = None) -> Publication:
+    def get_publication(self,
+                        title: str,
+                        issn: Optional[str] = None,
+                        isbn: Optional[str] = None) -> Publication:
         """
         Get a collected publication by publication's title, issn and isbn
 
@@ -246,7 +266,8 @@ class Search():
         Returns
         -------
         Publication
-            The wanted publication, or None if there isn't a publication given by the provided arguments
+            The wanted publication, or None if there isn't a publication
+            given by the provided arguments
         """
 
         publication_key = self.get_publication_key(title, issn, isbn)
@@ -276,16 +297,18 @@ class Search():
 
     def merge_duplications(self, similarity_threshold: float = 0.95):
         """
-        In some cases, a same paper is represented with tiny differences between some databases, 
-        this method try to deal with this situation merging those instances of the paper,
-        using a similarity threshold, by default 0.95 (95%), i.e., if two papers titles
-        are similar by 95% or more, and if the papers have the same year of publication
+        In some cases, a same paper is represented with tiny differences
+        between some databases, this method try to deal with this situation
+        merging those instances of the paper, using a similarity threshold,
+        by default 0.95 (95%), i.e., if two papers titles are similar by 95%
+        or more, and if the papers have the same year of publication
         this papers are considered duplications of a same paper.
 
         Parameters
         ----------
         max_similarity_threshold : float, optional
-            A value between 0 and 1 that represents a threshold that says if a pair of papers is a duplication or not, by default 0.95 (95%)
+            A value between 0 and 1 that represents a threshold that says
+            if a pair of papers is a duplication or not, by default 0.95 (95%)
         """
 
         paper_key_pairs = list(
