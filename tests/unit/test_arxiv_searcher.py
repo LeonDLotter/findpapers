@@ -56,7 +56,7 @@ def test_get_publication():
     assert publication.isbn is None
     assert publication.issn is None
     assert publication.publisher is None
-    assert publication.category is None
+    assert publication.category is 'Preprint'
     assert len(publication.subject_areas) == 1
     assert 'Astrophysics' in publication.subject_areas
 

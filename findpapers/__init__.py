@@ -5,7 +5,8 @@ from findpapers.tools.bibtex_generator_tool import generate_bibtex
 from findpapers.tools.search_runner_tool import search
 from findpapers.tools.refiner_tool import refine
 from findpapers.tools.downloader_tool import download
-
+from findpapers.tools.rayyan_tool import RayyanExport
+from findpapers.tools.refman_tool import RisExport
 try:
     import importlib.metadata as importlib_metadata
 except ModuleNotFoundError:

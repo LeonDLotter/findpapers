@@ -9,6 +9,9 @@ dist
 __pycache__
 *.egg-info/
 
+# Shell
+*.sh
+
 # Test
 playground
 samples/test.py
@@ -16,11 +19,16 @@ tests.xml
 coverage.xml
 .pytest_cache
 .coverage
+dev.py
 
 # OS
 .DS_Store
 
 # Generated files
+*.csv
 *.pdf
 *.log
 *.bib
+*.json
+*.ris
+*.png

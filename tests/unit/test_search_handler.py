@@ -3,25 +3,12 @@ import json
 import findpapers
 import tempfile
 import pytest
+from datetime import datetime
 from findpapers.models.search import Search
 from findpapers.models.paper import Paper
 import findpapers.tools.search_runner_tool as search_runner_tool
 
 
-@pytest.mark.skip(reason="It needs some revision after some tool's refactoring")
-def test_run():
-
-    os.environ['FINDPAPERS_SCOPUS_API_TOKEN'] = 'api-fake-token'
-    os.environ['FINDPAPERS_IEEE_API_TOKEN'] = 'api-fake-token'
-    search = findpapers.run('this AND that', limit_per_database=2)
-
-    fetched_papers_count = 0
-    for paper in search.papers:
-        fetched_papers_count += len(paper.databases)
-
-    assert fetched_papers_count == 10
-    
-    
 @pytest.mark.skip(reason="It needs some revision after some tool's refactoring")
 def test_save_and_load(search: Search, paper: Paper):
 
@@ -73,3 +60,65 @@ def test_query_sanitize():
     assert search_runner_tool._sanitize_query('([term a]    OR     [term b]) AND [term *]') == '([term a] OR [term b]) AND [term *]'
     assert search_runner_tool._sanitize_query('([term a]\nOR\t[term b]) AND [term *]') == '([term a] OR [term b]) AND [term *]'
     assert search_runner_tool._sanitize_query('([term a]\n\n\n\nOR\n\n\n\n[term b]) AND [term *]') == '([term a] OR [term b]) AND [term *]'
+
+
+@pytest.mark.parametrize('start_date,'
+                         'end_date',
+                         [(datetime.fromisoformat('2017-01-01').date(),
+                           datetime.fromisoformat('2022-01-01').date())])
+def test_date_restriction(start_date: datetime.date,
+                          end_date: datetime.date):
+    """Tests date restrictions of search function using fake data."""
+    search = search_runner_tool.search(None,
+                                       '[graph]',
+                                       start_date,
+                                       end_date,
+                                       25,
+                                       5)
+
+    # test number of fetched papers
+    assert len(search.papers) > 0
+
+    # test date restriction
+    dates = [v.publication_date for v in search.papers]
+    assert min(dates) >= start_date
+    assert max(dates) <= end_date
+
+
+@pytest.mark.parametrize('limit,'
+                         'databases,'
+                         'publication_type,'
+                         'search_string',
+                         [(10,
+                           ['pubmed'],
+                           ['Journal'],
+                           '[asd] AND [TEST]'),
+                          (5,
+                           ['pubmed'],
+                           ['Journal'],
+                           '[asd] AND [TEST]'),
+                          (3,
+                           ['arxiv'],
+                           ['Preprint'],
+                           '[asd] AND [TEST]')])
+def test_search(limit: int,
+                databases: list,
+                publication_type: list,
+                search_string: str):
+    """Tests search function using fake data."""
+    search = search_runner_tool.search(None,
+                                       search_string,
+                                       None,
+                                       None,
+                                       limit*len(databases),
+                                       limit,
+                                       databases,
+                                       publication_type)
+
+    # test number of fetched papers
+    assert len(search.papers) == limit*len(databases)
+
+    # test publication type
+    for paper in search.papers:
+        if paper.publication is not None:
+            assert paper.publication.category in publication_type

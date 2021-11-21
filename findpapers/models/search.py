@@ -12,9 +12,16 @@ class Search():
     Class that represents a search
     """
 
-    def __init__(self, query: str, since: Optional[datetime.date] = None, until: Optional[datetime.date] = None,
-                 limit: Optional[int] = None, limit_per_database: Optional[int] = None, processed_at: Optional[datetime.datetime] = None,
-                 databases: Optional[List[str]] = None, publication_types: Optional[List[str]] = None, papers: Optional[set] = None):
+    def __init__(self,
+                 query: str,
+                 since: Optional[datetime.date] = None,
+                 until: Optional[datetime.date] = None,
+                 limit: Optional[int] = None,
+                 limit_per_database: Optional[int] = None,
+                 processed_at: Optional[datetime.datetime] = None,
+                 databases: Optional[List[str]] = None,
+                 publication_types: Optional[List[str]] = None,
+                 papers: Optional[set] = None):
         """
         Class constructor
 
@@ -27,27 +34,41 @@ class Search():
         until : datetime.date, optional
             The upper bound (inclusive) date of search, by default None
         limit : int, optional
-            The max number of papers that can be returned in the search, 
-            when the limit is not provided the search will retrieve all the papers that it can, by default None
+            The max number of papers that can be returned in the search,
+            when the limit is not provided the search will retrieve all the
+            papers that it can, by default None
         limit_per_database : int, optional
-            The max number of papers that can be returned in the search for each database
-            when the limit is not provided the search will retrieve all the papers that it can, by default None
+            The max number of papers that can be returned in the search for
+            each database when the limit is not provided the search will
+            retrieve all the papers that it can, by default None
         processed_at : datetime.datetime, optional
             The datetime when the search was performed
         databases : List[str], optional
-            List of databases where the search should be performed, if not specified all databases will be used. by default None
+            List of databases where the search should be performed, if not
+            specified all databases will be used. by default None
         publication_types : List[str], optional
-            List of publication list of publication types to filter when searching, if not specified all publication types will be used. By default None
+            List of publication list of publication types to filter when
+            searching, if not specified all publication types will be used.
+            By default None
         papers : set, optional
             A list of papers already collected
         """
 
         self.query = query
+
+        # ensure type for date limits
         self.since = since
+        if (since is not None and
+           isinstance(since, datetime.datetime)):
+            self.since = self.since.date()
         self.until = until
+        if (until is not None and
+           isinstance(until, datetime.datetime)):
+            self.until = self.until.date()
         self.limit = limit
         self.limit_per_database = limit_per_database
-        self.processed_at = processed_at if processed_at is not None else datetime.datetime.utcnow()
+        self.processed_at = (processed_at if processed_at is not None else
+                             datetime.datetime.utcnow())
         self.databases = databases
         self.publication_types = publication_types
 
@@ -64,9 +85,13 @@ class Search():
                 except Exception:
                     pass
 
-    def get_paper_key(self, paper_title: str, publication_date: datetime.date, paper_doi: Optional[str] = None) -> str:
+    def get_paper_key(self,
+                      paper_title: str,
+                      publication_date: datetime.date,
+                      paper_doi: Optional[str] = None) -> str:
         """
-        We have a map called paper_by_key that is filled using the string this method returns
+        We have a map called paper_by_key that is filled using
+        the string this method returns
 
         Parameters
         ----------
@@ -80,17 +105,25 @@ class Search():
         Returns
         -------
         str
-            A string that represents a unique key for each paper, that will be used to fill and retrieve values from paper_by_key
+            A string that represents a unique key for each paper,
+            that will be used to fill and retrieve values from paper_by_key
         """
 
         if paper_doi is not None:
             return f'DOI-{paper_doi}'
         else:
-            return f'{paper_title.lower()}|{publication_date.year if publication_date is not None else ""}'
+            year = ''
+            if publication_date is not None:
+                year = publication_date.year
+            return (f'{paper_title.lower()}|'
+                    f'{year}')
 
-    def get_publication_key(self, publication_title: str, publication_issn: Optional[str] = None, publication_isbn: Optional[str] = None) -> str:
+    def get_publication_key(self, publication_title: str,
+                            publication_issn: Optional[str] = None,
+                            publication_isbn: Optional[str] = None) -> str:
         """
-        We have a map called publication_by_key that is filled using the string this method returns
+        We have a map called publication_by_key that is filled using
+        the string this method returns
 
         Parameters
         ----------
@@ -104,7 +137,9 @@ class Search():
         Returns
         -------
         str
-            A string that represents a unique key for each publication, that will be used to fill and retrieve values from publication_by_key
+            A string that represents a unique key for each publication,
+            that will be used to fill and retrieve values
+            from publication_by_key
         """
 
         if publication_issn is not None:
@@ -116,8 +151,8 @@ class Search():
 
     def add_paper(self, paper: Paper):
         """
-        Method that handle the action to add a paper to the list of already collected papers, 
-        dealing with possible paper's duplications
+        Method that handle the action to add a paper to the list of already
+        collected papers, dealing with possible paper's duplications
 
         Parameters
         ----------
@@ -126,28 +161,33 @@ class Search():
         Raises
         ------
         ValueError
-            - Paper cannot be added to search without at least one defined database
+            - Paper cannot be added to search without
+              at least one defined database
         OverflowError
             - When the papers limit is provided, you cannot exceed it
         """
 
         if len(paper.databases) == 0:
-            raise ValueError(
-                'Paper cannot be added to search without at least one defined database')
+            raise ValueError('Paper cannot be added to search without'
+                             'at least one defined database')
 
         for database in paper.databases:
-            if self.databases is not None and database.lower() not in self.databases:
-                raise ValueError(f'Database {database} isn\'t in databases list')
+            if (self.databases is not None and
+               database.lower() not in self.databases):
+                raise ValueError(f'Database {database}'
+                                 ' isn\'t in databases list')
             if self.reached_its_limit(database):
-                raise OverflowError('When the papers limit is provided, you cannot exceed it')
+                raise OverflowError('When the papers limit is provided, '
+                                    'you cannot exceed it')
 
         if database not in self.papers_by_database:
             self.papers_by_database[database] = set()
 
         if paper.publication is not None:
 
-            publication_key = self.get_publication_key(
-                paper.publication.title, paper.publication.issn, paper.publication.isbn)
+            publication_key = self.get_publication_key(paper.publication.title,
+                                                       paper.publication.issn,
+                                                       paper.publication.isbn)
             already_collected_publication = self.publication_by_key.get(
                 publication_key, None)
 
@@ -162,8 +202,8 @@ class Search():
 
         already_collected_paper = self.paper_by_key.get(paper_key, None)
 
-        if (self.since is None or paper.publication_date >= self.since) \
-                and (self.until is None or paper.publication_date <= self.until):
+        if ((self.since is None or paper.publication_date >= self.since) and
+           (self.until is None or paper.publication_date <= self.until)):
 
             if already_collected_paper is None:
                 self.papers.add(paper)
@@ -179,9 +219,10 @@ class Search():
             else:
                 self.papers_by_database[database].add(already_collected_paper)
                 already_collected_paper.enrich(paper)
-        
 
-    def get_paper(self, paper_title: str, publication_date: str, paper_doi: Optional[str] = None) -> Paper:
+    def get_paper(self, paper_title: str,
+                  publication_date: str,
+                  paper_doi: Optional[str] = None) -> Paper:
         """
         Get a collected paper by paper's title and publication date
 
@@ -197,7 +238,8 @@ class Search():
         Returns
         -------
         Paper
-            The wanted paper, or None if there isn't a paper given by the provided arguments
+            The wanted paper, or None if there isn't a papers
+            given by the provided arguments
         """
 
         paper_key = self.get_paper_key(
@@ -205,7 +247,10 @@ class Search():
 
         return self.paper_by_key.get(paper_key, None)
 
-    def get_publication(self, title: str, issn: Optional[str] = None, isbn: Optional[str] = None) -> Publication:
+    def get_publication(self,
+                        title: str,
+                        issn: Optional[str] = None,
+                        isbn: Optional[str] = None) -> Publication:
         """
         Get a collected publication by publication's title, issn and isbn
 
@@ -221,7 +266,8 @@ class Search():
         Returns
         -------
         Publication
-            The wanted publication, or None if there isn't a publication given by the provided arguments
+            The wanted publication, or None if there isn't a publication
+            given by the provided arguments
         """
 
         publication_key = self.get_publication_key(title, issn, isbn)
@@ -251,16 +297,18 @@ class Search():
 
     def merge_duplications(self, similarity_threshold: float = 0.95):
         """
-        In some cases, a same paper is represented with tiny differences between some databases, 
-        this method try to deal with this situation merging those instances of the paper,
-        using a similarity threshold, by default 0.95 (95%), i.e., if two papers titles
-        are similar by 95% or more, and if the papers have the same year of publication
+        In some cases, a same paper is represented with tiny differences
+        between some databases, this method try to deal with this situation
+        merging those instances of the paper, using a similarity threshold,
+        by default 0.95 (95%), i.e., if two papers titles are similar by 95%
+        or more, and if the papers have the same year of publication
         this papers are considered duplications of a same paper.
 
         Parameters
         ----------
         max_similarity_threshold : float, optional
-            A value between 0 and 1 that represents a threshold that says if a pair of papers is a duplication or not, by default 0.95 (95%)
+            A value between 0 and 1 that represents a threshold that says
+            if a pair of papers is a duplication or not, by default 0.95 (95%)
         """
 
         paper_key_pairs = list(
@@ -273,15 +321,20 @@ class Search():
             paper_1 = self.paper_by_key.get(paper_1_key)
             paper_2 = self.paper_by_key.get(paper_2_key)
 
-            if (paper_1.publication_date is None or paper_2.publication_date is None) or \
-                (paper_1.publication_date.year != paper_2.publication_date.year) or \
-                (paper_1.doi is not None and paper_2.doi is not None and paper_1.doi != paper_2.doi):
-                # We cannot merge paper from different years or without a year defined or different DOI
-                break
+            # check if deduplication can be performed
+            if ((paper_1 is None or paper_2 is None) or
+               (paper_1.publication_date is None or
+                paper_2.publication_date is None) or
+               (paper_1.publication_date.year !=
+                paper_2.publication_date.year) or
+               (paper_1.doi is not None and
+                paper_2.doi is not None and
+                paper_1.doi != paper_2.doi)):
+                continue
 
             max_title_length = max(len(paper_1.title), len(paper_2.title))
 
-            # creating the max valid edit distance using the max title length between the two papers and the provided similarity threshold
+            # creating the max valid edit distance using the max title length
             max_edit_distance = int(
                 max_title_length * (1 - similarity_threshold))
 
@@ -289,7 +342,8 @@ class Search():
             titles_edit_distance = edlib.align(
                 paper_1.title.lower(), paper_2.title.lower())['editDistance']
 
-            if (paper_1.doi is not None and paper_1.doi == paper_2.doi) or (titles_edit_distance <= max_edit_distance):
+            if ((paper_1.doi is not None and paper_1.doi == paper_2.doi) or
+                (titles_edit_distance <= max_edit_distance)):
 
                 # using the information of paper_2 to enrich paper_1
                 paper_1.enrich(paper_2)
@@ -312,10 +366,16 @@ class Search():
             a flag that says if the search has reached its limit
         """
 
-        reached_general_limit = self.limit is not None and len(
-            self.papers) >= self.limit
-        reached_database_limit = self.limit_per_database is not None and database in self.papers_by_database and len(
-            self.papers_by_database.get(database)) >= self.limit_per_database
+        if bool(self.papers_by_database.get(database)):
+            n_dbs = len(self.papers_by_database.get(database))
+        else:
+            n_dbs = 0
+
+        reached_general_limit = (self.limit is not None and
+                                 len(self.papers) >= self.limit)
+        reached_database_limit = (self.limit_per_database is not None and
+                                  database in self.papers_by_database and
+                                  n_dbs >= self.limit_per_database)
 
         return reached_general_limit or reached_database_limit
 
