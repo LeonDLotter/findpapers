@@ -10,6 +10,12 @@ class References:
         self.doi = doi
 
     def get_references(self) -> List[List[str]]:
+        """
+        Get references from opencitation api based on the doi.
+
+        Returns:
+            List[List[str]]: List of the references.
+        """
         self.req = requests.get(
             url=OPENCITATIONS_API + self.doi,
         )
