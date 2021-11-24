@@ -25,8 +25,8 @@ class References:
                 citation['reference'] for citation in citations
             ]
             if refs[0] != '':
-                paper['reference'] = [ref.split(REFERENCES_SPLIT) for ref in refs]
+                paper['reference'] = refs[0].split(REFERENCES_SPLIT)
             else:
                 paper['reference'] = refs
-        
+            paper['selected'] = False
         return self.search_results
