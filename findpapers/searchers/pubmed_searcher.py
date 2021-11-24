@@ -195,7 +195,7 @@ def _get_paper(paper_entry: dict, publication: Publication) -> Paper:
     paper_ids = paper_entry.get('PubmedArticleSet').get('PubmedArticle').get(
         'PubmedData').get('ArticleIdList').get('ArticleId')
     for paper_id in paper_ids:
-        if type(paper_id) == dict and paper_id.get('@IdType', None) == 'doi':
+        if paper_id.get('@IdType', None) == 'doi':
             paper_doi = paper_id.get('#text')
             break
 
