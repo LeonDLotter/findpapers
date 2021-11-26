@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date
 
 import requests
 from findpapers.models.paper import Paper
@@ -62,11 +62,9 @@ def _get_paper(paper_entry: dict, publication: Publication) -> Paper:
     paper_abstract = None
     paper_authors = paper_entry['author'].split(SPLIT_AUTHOR)
     paper_publication = publication
-    paper_publication_year = paper_entry['year']
-    paper_publication_date = paper_publication_year + '-01-01'
-    paper_publication_date = datetime.strptime(
-        paper_publication_date, '%Y-%m-%d').date()
-    paper_urls = paper_entry['oa_link']
+    paper_publication_year = int(paper_entry['year'])
+    paper_publication_date = date(year=paper_publication_year, month=1, day=1)
+    paper_urls = [paper_entry['oa_link']]
     paper_doi = paper_entry['doi']
     paper_citations = paper_entry['citation']
     paper_pages = paper_entry['page']
