@@ -18,6 +18,8 @@ import findpapers.searchers.arxiv_searcher as arxiv_searcher
 import findpapers.searchers.acm_searcher as acm_searcher
 import findpapers.searchers.medrxiv_searcher as medrxiv_searcher
 import findpapers.searchers.biorxiv_searcher as biorxiv_searcher
+import findpapers.searchers.opencitations_searcher as opencitations_searcher
+import findpapers.tools.cross_references_tool as cr
 import findpapers.utils.common_util as common_util
 import findpapers.utils.persistence_util as persistence_util
 import findpapers.utils.publication_util as publication_util
@@ -400,6 +402,26 @@ def _is_query_ok(query: str) -> bool:
     return query_ok and current_keyword is None and current_operator is None
 
 
+def _add_cross_references(search: Search):
+    """
+    This private function gathers DOIs of references and citations
+    of current paper instances
+
+    Parameters
+    ----------
+    search : Search
+        The search object that contains the papers that
+        will be extended by the corss reference information.
+    """
+    try:
+        search.add_database(opencitations_searcher.DATABASE_LABEL)
+        for p in search.papers:
+            p.cites, p.references = cr.get_cross_references(p.doi)
+    except Exception:
+        logging.debug('Error while adding references and citations.',
+                      exc_info=True)
+
+
 def search(outputpath: str,
            query: Optional[str] = None,
            since: Optional[datetime.date] = None,
@@ -412,9 +434,10 @@ def search(outputpath: str,
            ieee_api_token: Optional[str] = None,
            proxy: Optional[str] = None,
            similarity_threshold: Optional[float] = 0.95,
+           cross_reference_search: Optional[bool] = False,
            verbose: Optional[bool] = False) -> dict:
     """
-    This method will find papers from some databases
+    This function will find papers from some databases
     based on the provided query.
 
     Parameters
@@ -480,6 +503,10 @@ def search(outputpath: str,
         proxy URL that can be used during requests.
         This can be also defined by an environment variable FINDPAPERS_PROXY.
         By default None
+
+    cross_reference_search: Optional[bool], optional
+        Starts cross reference search of citations and refrences based on DOIs
+
 
     verbose : Optional[bool], optional
         If you wanna a verbose logging
@@ -578,25 +605,28 @@ def search(outputpath: str,
         _database_safe_run(lambda: biorxiv_searcher.run(search),
                            search, biorxiv_searcher.DATABASE_LABEL)
 
-    logging.info('Enriching results...')
+    logging.info('Add references and citations...')
+    _add_cross_references(search)
 
+    if cross_reference_search:
+        logging.info('Get cross-references...')
+        _database_safe_run(lambda: opencitations_searcher.run(search),
+                           search, opencitations_searcher.DATABASE_LABEL)
+
+    logging.info('Enriching results...')
     _enrich(search, scopus_api_token)
 
     logging.info('Filtering results...')
-
     _filter(search)
 
     logging.info('Finding and merging duplications...')
-
     search.merge_duplications(similarity_threshold=similarity_threshold)
 
     logging.info('Flagging potentially predatory publications...')
-
     _flag_potentially_predatory_publications(search)
 
     logging.info(f'It\'s finally over! {len(search.papers)}'
                  ' papers retrieved. Good luck with your research :)')
-
     if outputpath is not None:
         common_util.check_write_access(outputpath)
         persistence_util.save(search, outputpath)
