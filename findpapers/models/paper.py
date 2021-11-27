@@ -10,11 +10,23 @@ class Paper():
     Class that represents a paper instance
     """
 
-    def __init__(self, title: str, abstract: str, authors: List[str], publication: Publication,
-                 publication_date: datetime.date, urls: Set[str], doi: Optional[str] = None, citations: Optional[int] = None,
-                 keywords: Optional[Set[str]] = None, comments: Optional[str] = None, number_of_pages: Optional[int] = None,
-                 pages: Optional[str] = None, databases: Optional[set] = None, selected: Optional[bool] = None,
-                 categories: Optional[bool] = None):
+    def __init__(self, title: str,
+                 abstract: str,
+                 authors: List[str],
+                 publication: Publication,
+                 publication_date: datetime.date,
+                 urls: Set[str],
+                 doi: Optional[str] = None,
+                 citations: Optional[int] = None,
+                 keywords: Optional[Set[str]] = None,
+                 comments: Optional[str] = None,
+                 number_of_pages: Optional[int] = None,
+                 pages: Optional[str] = None,
+                 databases: Optional[set] = None,
+                 selected: Optional[bool] = None,
+                 categories: Optional[bool] = None,
+                 references: Optional[list] = [],
+                 cites: Optional[list] = []):
         """
         Paper class constructor
 
@@ -50,6 +62,14 @@ class Paper():
             If a paper was selected by the user, by default None
         categories : dict, optional
             The defined paper categories by their facets, by default None
+        references: list, optional
+            A list of reference DOIs.
+        cites: list, optional
+            A list of citation DOIs of this paper.
+        source: str, optional
+            This string describes whether the paper was created as the primary
+            result of a search or from references or citations (cross-references)
+            of a primary search.
         Raises
         ------
         ValueError
@@ -77,6 +97,33 @@ class Paper():
         self.databases = databases if databases is not None else set()
         self.selected = selected
         self.categories = categories
+        self.references = references
+        self.cites = cites
+        self._source = 'primary'
+
+
+    @property
+    def source(self):
+        """ This property describes whether the paper was created as the primary
+        result of a search or from references or citations (cross-references)
+        of a primary search.
+        """
+        return self._source
+
+    @source.setter
+    def source(self, value: str):
+        """
+        This sets the whether the paper was
+        gather from primary seach, references or citations (cross-references)
+        of a primary search.
+
+        Parameters
+        ----------
+            value (str): string that describes the source
+        """
+        sources = ['primary', 'references', 'cites']
+        if value in sources:
+            self._source = value
 
     def add_database(self, database_name: str):
         """
