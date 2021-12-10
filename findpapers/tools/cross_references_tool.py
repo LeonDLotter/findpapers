@@ -1,6 +1,5 @@
 import requests
 
-from dataclasses import dataclass
 from typing import List, Tuple
 
 OPENCITATIONS_API = 'https://opencitations.net/index/api/v1/metadata/'
