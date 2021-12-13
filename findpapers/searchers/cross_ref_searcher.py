@@ -60,7 +60,7 @@ def _get_paper_entry(doi: str) -> dict:
     """
     try:
         session = requests.Session()
-        retry = Retry(connect=3, backoff_factor=0.5)
+        retry = Retry(connect=3, backoff_factor=0.2)
         adapter = HTTPAdapter(max_retries=retry)
         session.mount('https://', adapter)
 
@@ -69,8 +69,10 @@ def _get_paper_entry(doi: str) -> dict:
         citations = None
         if req.status_code == 200:
             citations = req.json().get('message')
+
     except Exception as e:
         return None
+
     return citations
 
 
@@ -168,10 +170,13 @@ def _add_papers(search: Search, source: str):
     # get references/citations
     source_dois = [d for s, p in search.paper_by_doi.items()
                    for d in getattr(p, source)]
+    # avoid duplicates
+    source_dois = list(set(source_dois))
 
     # gather paper metadata
     if len(source_dois) > 0:
-        for doi in source_dois:
+        logging.info(f'Cross-References {len(source_dois)} papers found')
+        for i, doi in enumerate(source_dois):
             paper_entry = _get_paper_entry(doi)
             if paper_entry is None:
                 continue  # doi was not found
@@ -179,6 +184,8 @@ def _add_papers(search: Search, source: str):
             paper = _get_paper(paper_entry, publication)
 
             if paper is not None:
+                logging.info(f'({i}/{len(source_dois)})'
+                             f' Fetching paper: {doi}')
                 paper.source = source
                 paper.add_database(DATABASE_LABEL)
                 search.add_paper(paper)
