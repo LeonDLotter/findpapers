@@ -101,7 +101,12 @@ def _enrich(search: Search, scopus_api_token: Optional[str] = None):
 
     for i, paper in enumerate(search.papers):
 
-        logging.info(f'({i+1}/{len(search.papers)}) Enriching paper: {paper.title}')
+        # skip cross-refs
+        if cross_ref_searcher.DATABASE_LABEL in paper.databases:
+            continue
+
+        logging.info(f'({i+1}/{len(search.papers)}) '
+                     f'Enriching paper: {paper.title}')
 
         try:
 
@@ -237,6 +242,10 @@ def _flag_potentially_predatory_publications(search: Search):
     """
 
     for i, paper in enumerate(search.papers):
+
+        # skip cross-refs
+        if cross_ref_searcher.DATABASE_LABEL in paper.databases:
+            continue
 
         logging.info(f'({i+1}/{len(search.papers)}) Checking paper: {paper.title}')
 
@@ -437,6 +446,7 @@ def search(outputpath: str,
            ieee_api_token: Optional[str] = None,
            proxy: Optional[str] = None,
            similarity_threshold: Optional[float] = 0.95,
+           rxiv_query: Optional[str] = None, 
            cross_reference_search: Optional[bool] = False,
            verbose: Optional[bool] = False) -> dict:
     """
@@ -507,6 +517,11 @@ def search(outputpath: str,
         This can be also defined by an environment variable FINDPAPERS_PROXY.
         By default None
 
+    rxiv_query : str, optional
+
+        A query string that will be used to perform the papers search for rxiv databases
+        and can be longer then query.
+
     cross_reference_search: Optional[bool], optional
         Starts cross reference search of citations and refrences based on DOIs
 
@@ -543,9 +558,16 @@ def search(outputpath: str,
 
     if query is None:
         query = os.getenv('FINDPAPERS_QUERY')
+        rxiv_query = query
 
     if query is not None:
         query = _sanitize_query(query)
+
+    if rxiv_query is not None:
+        rxiv_query = _sanitize_query(rxiv_query)
+
+    if rxiv_query is None or not _is_query_ok(rxiv_query):
+        raise ValueError('Invalid rxiv_query format')
 
     if query is None or not _is_query_ok(query):
         raise ValueError('Invalid query format')
@@ -563,10 +585,6 @@ def search(outputpath: str,
                     limit_per_database,
                     databases=databases,
                     publication_types=publication_types)
-
-    if databases is None or arxiv_searcher.DATABASE_LABEL.lower() in databases:
-        _database_safe_run(lambda: arxiv_searcher.run(search),
-                           search, arxiv_searcher.DATABASE_LABEL)
 
     if (databases is None or
        pubmed_searcher.DATABASE_LABEL.lower() in databases):
@@ -598,13 +616,23 @@ def search(outputpath: str,
         logging.info('Scopus API token not found, '
                      'skipping search on this database')
 
+    if databases is None or arxiv_searcher.DATABASE_LABEL.lower() in databases:
+        # reset search query
+        search.set_query(rxiv_query)
+        _database_safe_run(lambda: arxiv_searcher.run(search),
+                           search, arxiv_searcher.DATABASE_LABEL)
+
     if (databases is None or
        medrxiv_searcher.DATABASE_LABEL.lower() in databases):
+        # reset search query
+        search.set_query(rxiv_query)
         _database_safe_run(lambda: medrxiv_searcher.run(search),
                            search, medrxiv_searcher.DATABASE_LABEL)
 
     if (databases is None or
        biorxiv_searcher.DATABASE_LABEL.lower() in databases):
+        # reset search query
+        search.set_query(rxiv_query)
         _database_safe_run(lambda: biorxiv_searcher.run(search),
                            search, biorxiv_searcher.DATABASE_LABEL)
 

@@ -85,6 +85,18 @@ class Search():
                 except Exception:
                     pass
 
+    def set_query(self, query: str):
+        """
+        Sets query string
+
+        Parameters
+        ----------
+        query : str
+            String that weill be used for the search query
+        """
+
+        self.query = query
+
     def add_database(self, database_name: str):
         """
         Adds database to the search
