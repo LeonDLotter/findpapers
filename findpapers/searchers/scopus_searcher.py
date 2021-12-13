@@ -403,11 +403,10 @@ def run(search: Search, api_token: str, url: Optional[str] = None, papers_count:
         try:
 
             paper_title = paper_entry.get("dc:title")
-            logging.info(f'({papers_count}/{total_papers}) Fetching Scopus paper: {paper_title}')
-
+            logging.info(f'({papers_count}/{total_papers}) '
+                         f'Fetching Scopus paper: {paper_title}')
             publication = _get_publication(paper_entry, api_token)
             paper = _get_paper(paper_entry, publication)
-
             if paper is not None:
                 paper.add_database(DATABASE_LABEL)
                 search.add_paper(paper)

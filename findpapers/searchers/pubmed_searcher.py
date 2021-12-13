@@ -34,15 +34,19 @@ def _get_search_url(search: Search, start_record: Optional[int] = 0) -> str:
     """
     query = search.query.replace(' AND NOT ', ' NOT ')
     query = query_util.replace_search_term_enclosures(query, '"', '"[TIAB]')
-
-    url = f'{BASE_URL}/entrez/eutils/esearch.fcgi?db=pubmed&term={query} AND has abstract [FILT] AND "journal article"[Publication Type]'
+    # classical article
+    url = (f'{BASE_URL}/entrez/eutils/esearch.fcgi?db=pubmed&term={query} AND '
+           'has abstract [FILT] AND '
+           '("journal article"[Publication Type] OR '
+           '"classical article"[Publication Type])')
 
     if search.since is not None or search.until is not None:
         since = datetime.date(
             1, 1, 1) if search.since is None else search.since
         until = datetime.date.today() if search.until is None else search.until
 
-        url += f' AND {since.strftime("%Y/%m/%d")}:{until.strftime("%Y/%m/%d")}[Date - Publication]'
+        url += (f' AND {since.strftime("%Y/%m/%d")}:'
+                f'{until.strftime("%Y/%m/%d")}[Date - Publication]')
 
     if start_record is not None:
         url += f'&retstart={start_record}'
@@ -52,9 +56,10 @@ def _get_search_url(search: Search, start_record: Optional[int] = 0) -> str:
     return url
 
 
-def _get_api_result(search: Search, start_record: Optional[int] = 0) -> dict:  # pragma: no cover
+def _get_api_result(search: Search, start_record: Optional[int] = 0) -> dict:
     """
-    This method return results from PubMed database using the provided search parameters
+    This method return results from PubMed database using
+    the provided search parameters.
 
     Parameters
     ----------
@@ -70,13 +75,18 @@ def _get_api_result(search: Search, start_record: Optional[int] = 0) -> dict:  #
     """
 
     url = _get_search_url(search, start_record)
+    result = common_util.try_success(
+        lambda: xmltodict.parse(DefaultSession().get(url).content),
+        2,
+        pre_delay=1)
 
-    return common_util.try_success(lambda: xmltodict.parse(DefaultSession().get(url).content), 2, pre_delay=1)
+    return result
 
 
 def _get_paper_entry(pubmed_id: str) -> dict:  # pragma: no cover
     """
-    This method return paper data from PubMed database using the provided PubMed ID
+    This method return paper data from PubMed database using 
+    the provided PubMed ID.
 
     Parameters
     ----------
@@ -89,9 +99,14 @@ def _get_paper_entry(pubmed_id: str) -> dict:  # pragma: no cover
         a paper entry from PubMed database
     """
 
-    url = f'{BASE_URL}/entrez/eutils/efetch.fcgi?db=pubmed&id={pubmed_id}&rettype=abstract'
+    url = (f'{BASE_URL}/entrez/eutils/efetch.fcgi?db=pubmed&'
+           f'id={pubmed_id}&rettype=abstract')
+    result = common_util.try_success(
+        lambda: xmltodict.parse(DefaultSession().get(url).content),
+        2,
+        pre_delay=1)
 
-    return common_util.try_success(lambda: xmltodict.parse(DefaultSession().get(url).content), 2, pre_delay=1)
+    return result
 
 
 def _get_publication(paper_entry: dict) -> Publication:
@@ -117,7 +132,8 @@ def _get_publication(paper_entry: dict) -> Publication:
     if publication_title is None or len(publication_title) == 0:
         return None
 
-    publication_issn = article.get('Journal').get('ISSN').get('#text')
+    issn = article.get('Journal').get('ISSN')
+    publication_issn = issn.get('#text') if issn is not None else None
 
     publication = Publication(publication_title, None,
                               publication_issn, None, 'Journal')
@@ -145,7 +161,10 @@ def _get_text_recursively(text_entry) -> str:
         return text_entry
     else:
         text = []
-        items = text_entry if type(text_entry) == list else [x for k, x in text_entry.items()]
+        if type(text_entry) == list:
+            items = text_entry
+        else:
+            items = [x for k, x in text_entry.items()]
         for item in items:
             text.append(_get_text_recursively(item))
         return ' '.join(text)
@@ -168,8 +187,12 @@ def _get_paper(paper_entry: dict, publication: Publication) -> Paper:
         A paper instance or None
     """
 
-    article = paper_entry.get('PubmedArticleSet').get(
-        'PubmedArticle').get('MedlineCitation').get('Article')
+    # current issue - search is unable to deal with books
+    if paper_entry.get('PubmedArticleSet') is None:
+        return None
+
+    pubmed_article = paper_entry.get('PubmedArticleSet').get('PubmedArticle')
+    article = pubmed_article.get('MedlineCitation').get('Article')
 
     paper_title = _get_text_recursively(article.get('ArticleTitle', None))
 
@@ -177,54 +200,63 @@ def _get_paper(paper_entry: dict, publication: Publication) -> Paper:
         return None
 
     if 'ArticleDate' in article:
-        paper_publication_date_day = article.get('ArticleDate').get('Day')
-        paper_publication_date_month = article.get('ArticleDate').get('Month')
-        paper_publication_date_year = article.get('ArticleDate').get('Year')
+        paper_pub_day = article.get('ArticleDate').get('Day')
+        paper_pub_month = article.get('ArticleDate').get('Month')
+        paper_pub_year = article.get('ArticleDate').get('Year')
     else:
-        paper_publication_date_day = 1
-        paper_publication_date_month = common_util.get_numeric_month_by_string(
-            article.get('Journal').get('JournalIssue').get('PubDate').get('Month'))
-        paper_publication_date_year = article.get('Journal').get(
-            'JournalIssue').get('PubDate').get('Year')
+        pub_date = article.get('Journal').get('JournalIssue').get('PubDate')
+        paper_pub_day = 1
+        month = pub_date.get('Month')
+        paper_pub_month = common_util.get_numeric_month_by_string(month)
+        paper_pub_year = pub_date.get('Year')
 
     paper_doi = None
-    paper_ids = paper_entry.get('PubmedArticleSet').get('PubmedArticle').get(
-        'PubmedData').get('ArticleIdList').get('ArticleId')
-    for paper_id in paper_ids:
-        if paper_id.get('@IdType', None) == 'doi':
-            paper_doi = paper_id.get('#text')
-            break
+    paper_ids = pubmed_article.get('PubmedData').get(
+        'ArticleIdList').get('ArticleId')
+
+    if isinstance(paper_ids, list):
+        for paper_id in paper_ids:
+            if paper_id.get('@IdType', None) == 'doi':
+                paper_doi = paper_id.get('#text')
+                break
+    elif paper_ids.get('@IdType', None) == 'doi':
+        paper_doi = paper_ids.get('#text')
 
     paper_abstract = None
-    paper_abstract_entry = article.get('Abstract', {}).get('AbstractText', None)
+    paper_abstract_entry = article.get('Abstract', {}).get(
+        'AbstractText', None)
     if paper_abstract_entry is None:
         raise ValueError('Paper abstract is empty')
 
     if isinstance(paper_abstract_entry, list):
-        paper_abstract = '\n'.join([_get_text_recursively(x) for x in paper_abstract_entry])
+        paper_abstract = '\n'.join([_get_text_recursively(x) for
+                                    x in paper_abstract_entry])
     else:
         paper_abstract = _get_text_recursively(paper_abstract_entry)
 
     try:
-        paper_keywords = set([_get_text_recursively(x).strip() for x in paper_entry.get('PubmedArticleSet').get(
-            'PubmedArticle').get('MedlineCitation').get('KeywordList').get('Keyword')])
+        keywords = pubmed_article.get('MedlineCitation').get(
+            'KeywordList').get('Keyword')
+        paper_keywords = set([_get_text_recursively(x).strip() for
+                              x in keywords])
     except Exception:
         paper_keywords = set()
-    
+
     paper_publication_date = None
     try:
-        paper_publication_date = datetime.date(int(paper_publication_date_year), int(
-            paper_publication_date_month), int(paper_publication_date_day))
+        paper_publication_date = datetime.date(int(paper_pub_year), int(
+            paper_pub_month), int(paper_pub_day))
     except Exception:
-        if paper_publication_date_year is not None:
-            paper_publication_date = datetime.date(int(paper_publication_date_year), 1, 1)
+        if paper_pub_year is not None:
+            paper_publication_date = datetime.date(int(paper_pub_year), 1, 1)
 
     if paper_publication_date is None:
         return None
 
     paper_authors = []
     retrived_authors = []
-    if isinstance(article.get('AuthorList').get('Author'), dict): # only one author
+    # only one author
+    if isinstance(article.get('AuthorList').get('Author'), dict):
         retrived_authors = [article.get('AuthorList').get('Author')]
     else:
         retrived_authors = article.get('AuthorList').get('Author')
@@ -233,20 +265,24 @@ def _get_paper(paper_entry: dict, publication: Publication) -> Paper:
         if isinstance(author, str):
             paper_authors.append(author)
         elif isinstance(author, dict):
-            paper_authors.append(f"{author.get('ForeName')} {author.get('LastName')}")
+            paper_authors.append(f"{author.get('ForeName')} "
+                                 f"{author.get('LastName')}")
 
     paper_pages = None
     paper_number_of_pages = None
     try:
         paper_pages = article.get('Pagination').get('MedlinePgn')
-        if not paper_pages.isdigit(): # if it's a digit, the paper pages range is invalid
+        # if it's a digit, the paper pages range is invalid
+        if not paper_pages.isdigit():
             pages_split = paper_pages.split('-')
-            paper_number_of_pages = abs(int(pages_split[0])-int(pages_split[1]))+1
+            paper_number_of_pages = abs(
+                int(pages_split[0])-int(pages_split[1]))+1
     except Exception:  # pragma: no cover
         pass
 
     paper = Paper(paper_title, paper_abstract, paper_authors, publication,
-                  paper_publication_date, set(), paper_doi, None, paper_keywords, None, 
+                  paper_publication_date, set(),
+                  paper_doi, None, paper_keywords, None,
                   paper_number_of_pages, paper_pages)
 
     return paper
@@ -254,8 +290,10 @@ def _get_paper(paper_entry: dict, publication: Publication) -> Paper:
 
 def run(search: Search):
     """
-    This method fetch papers from pubmed database using the provided search parameters
-    After fetch the data from pubmed, the collected papers are added to the provided search instance
+    This method fetch papers from pubmed database using the 
+    provided search parameters. After fetch the data from
+    pubmed, the collected papers are added to the provided 
+    search instance.
 
     Parameters
     ----------
@@ -266,8 +304,11 @@ def run(search: Search):
 
     """
 
-    if search.publication_types is not None and 'journal' not in search.publication_types:
-        logging.info('Skiping PubMed search, journal publication type not in filters. Nowadays the PubMed only retrieves papers published on journals.')
+    if (search.publication_types is not None and
+       'journal' not in search.publication_types):
+        logging.info('Skiping PubMed search, journal publication type '
+                     'not in filters. Nowadays the PubMed only retrieves '
+                     'papers published on journals.')
         return
 
     papers_count = 0
@@ -277,31 +318,32 @@ def run(search: Search):
         total_papers = 0
     else:
         total_papers = int(result.get('eSearchResult').get('Count'))
-    
+
     logging.info(f'PubMed: {total_papers} papers to fetch')
 
-    while(papers_count < total_papers and not search.reached_its_limit(DATABASE_LABEL)):
+    while(papers_count < total_papers and
+          not search.reached_its_limit(DATABASE_LABEL)):
 
         for pubmed_id in result.get('eSearchResult').get('IdList').get('Id'):
 
-            if papers_count >= total_papers or search.reached_its_limit(DATABASE_LABEL):
+            if (papers_count >= total_papers or
+               search.reached_its_limit(DATABASE_LABEL)):
                 break
-            
+
             papers_count += 1
-            
+
             try:
 
                 paper_entry = _get_paper_entry(pubmed_id)
 
                 if paper_entry is not None:
-
-                    paper_title = paper_entry.get('PubmedArticleSet').get('PubmedArticle').get(
+                    paper_title = paper_entry.get(
+                        'PubmedArticleSet').get('PubmedArticle').get(
                         'MedlineCitation').get('Article').get('ArticleTitle')
-
                     paper_title = _get_text_recursively(paper_title)
 
-                    logging.info(f'({papers_count}/{total_papers}) Fetching PubMed paper: {paper_title}')
-
+                    logging.info(f'({papers_count}/{total_papers})'
+                                 f' Fetching PubMed paper: {paper_title}')
                     publication = _get_publication(paper_entry)
                     paper = _get_paper(paper_entry, publication)
 
@@ -312,5 +354,6 @@ def run(search: Search):
             except Exception as e:  # pragma: no cover
                 logging.debug(e, exc_info=True)
 
-        if papers_count < total_papers and not search.reached_its_limit(DATABASE_LABEL):
+        if (papers_count < total_papers and
+           not search.reached_its_limit(DATABASE_LABEL)):
             result = _get_api_result(search, papers_count)
