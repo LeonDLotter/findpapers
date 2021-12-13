@@ -1,10 +1,6 @@
-import requests
 import datetime
 import logging
-import re
-import math
 import xmltodict
-from lxml import html
 from typing import Optional
 import findpapers.utils.common_util as common_util
 import findpapers.utils.query_util as query_util
@@ -162,7 +158,7 @@ def _get_paper(paper_entry: dict, publication: Publication) -> Paper:
     Parameters
     ----------
     paper_entry : dict
-        A paper entry retrieved from IEEE API
+        A paper entry retrieved from pubmed API
     publication : Publication
         A publication instance that will be associated with the paper
 
@@ -258,20 +254,16 @@ def _get_paper(paper_entry: dict, publication: Publication) -> Paper:
 
 def run(search: Search):
     """
-    This method fetch papers from IEEE database using the provided search parameters
-    After fetch the data from IEEE, the collected papers are added to the provided search instance
+    This method fetch papers from pubmed database using the provided search parameters
+    After fetch the data from pubmed, the collected papers are added to the provided search instance
 
     Parameters
     ----------
     search : Search
         A search instance
     api_token : str
-        The API key used to fetch data from IEEE database,
+        The API key used to fetch data from pubmed database,
 
-    Raises
-    ------
-    AttributeError
-        - The API token cannot be null
     """
 
     if search.publication_types is not None and 'journal' not in search.publication_types:

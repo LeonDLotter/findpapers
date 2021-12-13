@@ -85,6 +85,29 @@ class Search():
                 except Exception:
                     pass
 
+    def add_database(self, database_name: str):
+        """
+        Adds database to the search
+
+        Parameters
+        ----------
+        database_name : str
+            The database name which will be searched
+
+        Raises
+        ------
+        ValueError
+            - Nowadays only OC, ACM, arXiv, IEEE, PubMed or Scopus are valid database names
+        """
+
+        from findpapers.searchers import AVAILABLE_DATABASES
+
+        if database_name not in AVAILABLE_DATABASES:
+            raise ValueError(
+                f'Invalid database name "{database_name}". Nowadays only {", ".join(AVAILABLE_DATABASES)} are valid database names')
+
+        self.databases.append(database_name.lower())
+
     def get_paper_key(self,
                       paper_title: str,
                       publication_date: datetime.date,

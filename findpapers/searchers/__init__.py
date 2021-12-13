@@ -5,6 +5,8 @@ import findpapers.searchers.arxiv_searcher as arxiv_searcher
 import findpapers.searchers.acm_searcher as acm_searcher
 import findpapers.searchers.medrxiv_searcher as medrxiv_searcher
 import findpapers.searchers.biorxiv_searcher as biorxiv_searcher
+import findpapers.searchers.opencitations_searcher as opencitations_searcher
+import findpapers.searchers.cross_ref_searcher as cross_ref_searcher
 
 
 AVAILABLE_DATABASES = [
@@ -15,4 +17,6 @@ AVAILABLE_DATABASES = [
     acm_searcher.DATABASE_LABEL,
     medrxiv_searcher.DATABASE_LABEL,
     biorxiv_searcher.DATABASE_LABEL,
+    opencitations_searcher.DATABASE_LABEL,
+    cross_ref_searcher.DATABASE_LABEL
 ]
