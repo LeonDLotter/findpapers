@@ -2,6 +2,8 @@ import logging
 import requests
 
 from datetime import date
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 from findpapers.models.paper import Paper
 from findpapers.models.publication import Publication
 from findpapers.models.search import Search
@@ -27,7 +29,6 @@ class date_converter(object):
                          month=self.month,
                          day=self.day)
 
-
     def _ymd_date(self):
         """Sets date parts from list"""
         self.year = int(self.date_parts[0])
@@ -39,7 +40,6 @@ class date_converter(object):
         self.year = int(self.date_parts[0])
         self.month = int(self.date_parts[1])
         self.day = 1
-
 
     def _y_date(self):
         """Sets date parts from list with default day and month"""
@@ -58,10 +58,19 @@ def _get_paper_entry(doi: str) -> dict:
     Returns:
         dict: Paper entry from the Opencitations API.
     """
+    try:
+        session = requests.Session()
+        retry = Retry(connect=3, backoff_factor=0.5)
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount('https://', adapter)
 
-    req = requests.get(url=CROSSREF_API + doi)
-    citations = req.json()['message']
-
+        req = session.get(url=CROSSREF_API + doi)
+        # req = requests.get(url=CROSSREF_API + doi)
+        citations = None
+        if req.status_code == 200:
+            citations = req.json().get('message')
+    except Exception as e:
+        return None
     return citations
 
 
@@ -76,19 +85,24 @@ def _get_publication(paper_entry: dict) -> Publication:
         Publication: Publication instance.
     """
 
-    publication_title = paper_entry['container-title'][0]
+    publication_title = paper_entry.get('container-title')
 
     if publication_title is None or len(publication_title) == 0:
         publication_title = DATABASE_LABEL
-
-    if paper_entry['type'] == 'journal-article':
-        publication_category = 'Journal'
     else:
-        publication_category = paper_entry['type']
+        publication_title = publication_title[0]
+
+    publication_issn = paper_entry.get('ISSN')
+    if publication_issn is not None:
+        publication_issn = publication_issn[0]
+
+    categories = {'journal-article': 'Journal',
+                  'monograph': 'Book'}
+    publication_category = categories.get(paper_entry.get('type'), 'Journal')
 
     publication = Publication(publication_title,
-                              issn=paper_entry['ISSN'][0],
-                              publisher=paper_entry['publisher'],
+                              issn=publication_issn,
+                              publisher=paper_entry.get('publisher'),
                               category=publication_category)
 
     return publication
@@ -107,27 +121,43 @@ def _get_paper(paper_entry: dict, publication: Publication) -> Paper:
         Paper: Paper instance.
     """
 
-    paper_title = paper_entry['title'][0]
+    title = paper_entry.get('title')
 
-    paper_abstract = paper_entry.get('abstract')  # ensure null if not exist
-    paper_authors = [f"{a.get('given')} {a.get('family')}" for
-                     a in paper_entry.get('author')]
+    # add only papers with titles
+    if title is None or len(title) == 0:
+        return None
+    else:
+        paper_title = title[0]
 
-    # get publication date
+    paper_abstract = paper_entry.get('abstract')
+
+    # exclude cross-refs without abstracts
+    if paper_abstract is None:
+        return None
+
+    authors = paper_entry.get('author')
+    paper_authors = [f"{a.get('given')} {a.get('family')}" for a in
+                     (authors if authors is not None else {})]
+
+    # esnure publication date
+    published = paper_entry.get('published')
+    if published is None:
+        return None
+
     date_parts = paper_entry.get('published').get('date-parts')
-    paper_date = date_converter(date_parts[0])
-
-    paper_urls = paper_entry.get('URL')
+    paper_date = date_converter(date_parts[0]).date
+    paper_urls = set()
+    paper_urls.add(paper_entry.get('URL'))
     paper_doi = paper_entry.get('DOI')
     paper_pages = paper_entry.get('page')
 
-    paper_references = []
-    if paper_entry.get('reference') is not None:
-        paper_references = [d.get('URL') for d in paper_entry.get('reference')]
+    references = paper_entry.get('reference')
+    paper_references = [d.get('DOI') for d in
+                        (references if references is not None else [])]
 
     # note: check if ok i think these are counts
     paper = Paper(paper_title, paper_abstract, paper_authors,
-                  publication, paper_date.date,
+                  publication, paper_date,
                   paper_urls, paper_doi,
                   pages=paper_pages, references=paper_references)
 
@@ -143,6 +173,8 @@ def _add_papers(search: Search, source: str):
     if len(source_dois) > 0:
         for doi in source_dois:
             paper_entry = _get_paper_entry(doi)
+            if paper_entry is None:
+                continue  # doi was not found
             publication = _get_publication(paper_entry)
             paper = _get_paper(paper_entry, publication)
 
@@ -153,7 +185,6 @@ def _add_papers(search: Search, source: str):
 
 
 def run(search: Search, references: bool = True, citations: bool = True):
-
     try:
         if references:
             _add_papers(search, 'references')
