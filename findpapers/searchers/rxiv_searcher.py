@@ -337,9 +337,9 @@ def run(search: Search, database: str):
         if len(data) > 0:
             total_papers = data[0].get('total_papers')
 
-        logging.info(f'{database}: {total_papers}'
+        logging.info(f'{database}: {total_papers} '
                      'papers to fetch from '
-                     f'{i+1}/{len(urls)} papers requests')
+                     f'{i+1}/{len(urls)} sub queries')
 
         papers_count = 0
         dois = sum([d.get('dois') for d in [x for x in data]], [])

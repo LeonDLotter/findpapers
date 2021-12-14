@@ -96,8 +96,8 @@ class RisExport:
                                            else False),
                             issn=p.publication.issn,
                             title=p.title,
-                            type_of_reference=entry_type[
-                                p.publication.category],
+                            type_of_reference=entry_type.get(
+                                p.publication.category, "JOUR"),
                             url=list(p.urls),
                             publication_year=p.publication_date.year,
                             access_date=self.search.processed_at.date())

@@ -99,8 +99,13 @@ def _get_publication(paper_entry: dict) -> Publication:
         publication_issn = publication_issn[0]
 
     categories = {'journal-article': 'Journal',
-                  'monograph': 'Book'}
-    publication_category = categories.get(paper_entry.get('type'), 'Journal')
+                  'book-chapter': 'Book',
+                  'book': 'Book',
+                  'proceedings-article': 'Other',
+                  'dataset': 'Other',
+                  'posted-contend': 'Other',
+                  'other': 'Other'}
+    publication_category = categories.get(paper_entry.get('type'), 'Other')
 
     publication = Publication(publication_title,
                               issn=publication_issn,
