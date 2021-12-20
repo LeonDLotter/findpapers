@@ -90,7 +90,7 @@ def _get_publication(paper_entry: dict) -> Publication:
     publication_title = paper_entry.get('container-title')
 
     if publication_title is None or len(publication_title) == 0:
-        publication_title = '' # will in most cases apply to preprints 
+        publication_title = DATABASE_LABEL
     else:
         publication_title = publication_title[0]
 
@@ -142,8 +142,7 @@ def _get_paper(paper_entry: dict, publication: Publication) -> Paper:
     if paper_abstract is None:
         return None
     else:
-        remove_abstract = ['Abstract',
-                           '<jats:sec>', '</jats:sec>',
+        remove_abstract = ['<jats:sec>', '</jats:sec>',
                            '<jats:title>', '</jats:title>',
                            '<jats:p>', '</jats:p>']
         for i in remove_abstract:
@@ -152,7 +151,7 @@ def _get_paper(paper_entry: dict, publication: Publication) -> Paper:
     paper_authors = [f"{a.get('family')}, {a.get('given')}" for a in
                      (authors if authors is not None else {})]
 
-    # ensure publication date
+    # esnure publication date
     published = paper_entry.get('published')
     if published is None:
         return None
@@ -186,8 +185,7 @@ def _add_papers(search: Search, source: str):
 
     # gather paper metadata
     if len(source_dois) > 0:
-        logging.info(f'''Cross-References: {len(source_dois)} papers found, 
-                     excluding papers w/o abstracts''')
+        logging.info(f'Cross-References {len(source_dois)} papers found')
         for i, doi in enumerate(source_dois):
             paper_entry = _get_paper_entry(doi)
             if paper_entry is None:
