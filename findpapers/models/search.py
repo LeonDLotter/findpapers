@@ -379,12 +379,23 @@ class Search():
 
             if ((paper_1.doi is not None and paper_1.doi == paper_2.doi) or
                 (titles_edit_distance <= max_edit_distance)):
-
-                # using the information of paper_2 to enrich paper_1
-                paper_1.enrich(paper_2)
-
-                # removing the paper_2 instance
-                self.remove_paper(paper_2)
+                
+                # if preprint & journal article exist, make sure that preprint 
+                # enrichtes article
+                if (paper_1.publication.category == 'Preprint' 
+                    and paper_2.publication.category != 'Preprint'):
+                    
+                    # use information of paper 1 (preprint) to enrich paper 2
+                    paper_2.enrich(paper_1)
+                    
+                    # removing the paper_1 instance
+                    self.remove_paper(paper_1)
+                else:
+                    # using the information of paper_2 to enrich paper_1
+                    paper_1.enrich(paper_2)
+    
+                    # removing the paper_2 instance
+                    self.remove_paper(paper_2)
 
     def reached_its_limit(self, database: str) -> bool:
         """

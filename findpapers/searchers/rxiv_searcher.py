@@ -286,8 +286,11 @@ def _get_paper(paper_metadata: dict, database: str) -> Paper:
                            '<p>', '</p>']
         for i in remove_abstract:
             paper_abstract = paper_abstract.replace(i, '')
-    paper_authors = [x.strip() for x in
-                     paper_metadata.get('authors').split(';')]
+    paper_authors = list()
+    for author in paper_metadata.get('authors').split(';'): # separate authors
+        x = author.strip().split(' ') # split name at whitespaces
+        x = f'{x[-1]}, ' + ' '.join(x[:-1]) # last name entry first
+        paper_authors.append(x)
     publication = None
     paper_publication_date = (datetime.datetime.
                               strptime(paper_metadata.get('date'),
