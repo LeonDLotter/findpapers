@@ -193,8 +193,8 @@ def _get_paper(paper_page: html.HtmlElement, paper_doi: str, paper_url: str) -> 
         return None
 
     paper_authors = paper_metadata.get('author', [])
-    paper_authors = ['{} {}'.format(
-        x.get('given'), x.get('family')) for x in paper_authors]
+    paper_authors = ['{}, {}'.format(
+        x.get('family'), x.get('given')) for x in paper_authors]
 
     paper_publication_date = None
     if paper_metadata.get('issued', None) != None:

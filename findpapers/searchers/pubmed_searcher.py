@@ -265,8 +265,8 @@ def _get_paper(paper_entry: dict, publication: Publication) -> Paper:
         if isinstance(author, str):
             paper_authors.append(author)
         elif isinstance(author, dict):
-            paper_authors.append(f"{author.get('ForeName')} "
-                                 f"{author.get('LastName')}")
+            paper_authors.append(f"{author.get('LastName')}, "
+                                 f"{author.get('ForeName')}")
 
     paper_pages = None
     paper_number_of_pages = None

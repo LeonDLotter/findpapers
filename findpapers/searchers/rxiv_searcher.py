@@ -280,6 +280,12 @@ def _get_paper(paper_metadata: dict, database: str) -> Paper:
 
     paper_title = paper_metadata.get('title')
     paper_abstract = paper_metadata.get('abstract')
+     # exclude cross-refs without abstracts
+    if paper_abstract is not None:
+        remove_abstract = ['<h3>Abstract</h3>',
+                           '<p>', '</p>']
+        for i in remove_abstract:
+            paper_abstract = paper_abstract.replace(i, '')
     paper_authors = [x.strip() for x in
                      paper_metadata.get('authors').split(';')]
     publication = None

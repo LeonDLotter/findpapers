@@ -141,9 +141,14 @@ def _get_paper(paper_entry: dict, publication: Publication) -> Paper:
     # exclude cross-refs without abstracts
     if paper_abstract is None:
         return None
-
+    else:
+        remove_abstract = ['<jats:sec>', '</jats:sec>',
+                           '<jats:title>', '</jats:title>',
+                           '<jats:p>', '</jats:p>']
+        for i in remove_abstract:
+            paper_abstract = paper_abstract.replace(i, '')
     authors = paper_entry.get('author')
-    paper_authors = [f"{a.get('given')} {a.get('family')}" for a in
+    paper_authors = [f"{a.get('family')}, {a.get('given')}" for a in
                      (authors if authors is not None else {})]
 
     # esnure publication date

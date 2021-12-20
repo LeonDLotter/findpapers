@@ -147,12 +147,17 @@ def _enrich(search: Search, scopus_api_token: Optional[str] = None):
                     if paper_abstract is not None and len(paper_abstract.strip()) > 0:
                         paper.abstract = paper_abstract
 
-                    paper_authors = paper_metadata.get('citation_author', None)
-                    if paper_authors is not None and not isinstance(paper_authors, list): # there is only one author
-                        paper_authors = [paper_authors]
+                    if len(paper.authors) < 1:
+                        paper_authors = paper_metadata.get('citation_author',
+                                                           None)
+                        if (paper_authors is not None and
+                           not isinstance(paper_authors, list)):
+                            # single authorship
+                            paper_authors = [paper_authors]
 
-                    if paper_authors is not None and len(paper_authors) > 0:
-                        paper.authors = paper_authors
+                        if (paper_authors is not None and
+                           len(paper_authors) > 0):
+                            paper.authors = paper_authors
 
                     paper_keywords = _force_single_metadata_value_by_key(paper_metadata, 'citation_keywords')
                     if paper_keywords is None or len(paper_keywords.strip()) > 0:
@@ -654,8 +659,8 @@ def search(outputpath: str,
     logging.info('Finding and merging duplications...')
     search.merge_duplications(similarity_threshold=similarity_threshold)
 
-    logging.info('Flagging potentially predatory publications...')
-    _flag_potentially_predatory_publications(search)
+    #logging.info('Flagging potentially predatory publications...')
+    #_flag_potentially_predatory_publications(search)
 
     logging.info(f'It\'s finally over! {len(search.papers)}'
                  ' papers retrieved. Good luck with your research :)')
