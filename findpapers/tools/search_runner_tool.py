@@ -641,10 +641,9 @@ def search(outputpath: str,
         _database_safe_run(lambda: biorxiv_searcher.run(search),
                            search, biorxiv_searcher.DATABASE_LABEL)
 
-    logging.info('Add references and citations...')
-    _add_refs_cites(search)
-
     if cross_reference_search:
+        logging.info('Add references and citations...')
+        _add_refs_cites(search)
         logging.info('Get cross-references...')
         search.add_database(cross_ref_searcher.DATABASE_LABEL)
         _database_safe_run(lambda: cross_ref_searcher.run(search),
